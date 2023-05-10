@@ -99,6 +99,7 @@ class Piece:
         elif Piece.clicked_piece == self:
             [Piece.CANVAS.delete(move) for move in self.possible_move_ids]
             self.possible_move_ids.clear()
+            self.possible_moves.clear()
             Piece.clicked_piece = None
             return
 
@@ -165,9 +166,12 @@ class Piece:
             if isinstance(move[0], int) and isinstance(move[1], int):
                 x += move[0]
                 y += move[1]
-                self.possible_moves.add((x, y))
-                shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
-                self.possible_move_ids.add(shape_id)
+
+                # blocks moves if end of board or same color piece has been reached
+                if 0 <= x <= 7 and 0 <= y <= 7 and (Piece.board[x][y] is None or Piece.board[x][y].color != self.color):
+                    self.possible_moves.add((x, y))
+                    shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
+                    self.possible_move_ids.add(shape_id)
 
     def move(self, position: tuple):
         """
