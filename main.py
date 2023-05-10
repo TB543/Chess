@@ -1,4 +1,4 @@
-from Board.Piece import Piece
+from board import *
 
-
+initialize_board()
 Piece.CANVAS.mainloop()
