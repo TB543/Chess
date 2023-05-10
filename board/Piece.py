@@ -15,12 +15,16 @@ class Piece:
         5) has_not_moved - determines if the piece has moved or not yet
         6) color - the color of the piece
         7) name - the name of the piece
+        8) image_id - the id of the image for the piece
+        9) possible_move_ids - a list of canvas objects representing the possible moves for the piece
+        10) possible_moves - a list of possible moves for the current position of the piece
+        11) id - the id for the image on the canvas
 
     class contains the following functions:
         1) __init__ - creates the chess piece
         2) toggle_show_moves - display or hides possible moves for the piece
         3) move - moves the piece
-        4) kill - removes the piece from the board
+        4) click - handles when the mouse is clicked on the board
         5) __repr__ - returns the name of the piece, useful when printing Piece.board
     """
 
@@ -66,12 +70,14 @@ class Piece:
         image = image.split('/')
         self.color = image[-2]
         self.name = image[-1].replace('.png', '')
+        self.possible_move_ids = set()
+        self.possible_moves = set()
 
         # places piece on board
-        self.board[self.coordinates[0]][self.coordinates[1]] = self
+        Piece.board[self.coordinates[0]][self.coordinates[1]] = self
         x = (self.coordinates[0] * 100) + offset[0]
         y = (self.coordinates[1] * 100) + offset[1]
-        self.CANVAS.create_image(x, y, image=self.image, anchor=NW)
+        self.id = Piece.CANVAS.create_image(x, y, image=self.image, anchor=NW)
 
     def toggle_show_moves(self):
         """
@@ -83,6 +89,86 @@ class Piece:
         pieces moves
         """
 
+        # handles when another pieces moves are being displayed
+        if Piece.clicked_piece != self and Piece.clicked_piece is not None:
+            Piece.clicked_piece.toggle_show_moves()
+            self.toggle_show_moves()
+            return
+
+        # handles when piece is clicked and moves should be hidden
+        elif Piece.clicked_piece == self:
+            [Piece.CANVAS.delete(move) for move in self.possible_move_ids]
+            self.possible_move_ids.clear()
+            Piece.clicked_piece = None
+            return
+
+        # draws every possible move
+        Piece.clicked_piece = self
+        for move in self.moves:
+            x = self.coordinates[0]
+            y = self.coordinates[1]
+
+            # increments/decrements x and y to draw diagonal moves
+            while isinstance(move[0], str) and isinstance(move[1], str):
+                x += 1 if move[0] == 'i' else -1
+                y += 1 if move[1] == 'i' else -1
+
+                # blocks moves if end of board or same color piece has been reached
+                off_board = not (0 <= x <= 7 and 0 <= y <= 7)
+                if off_board or Piece.board[x][y] is not None and Piece.board[x][y].color == self.color:
+                    break
+
+                # adds move to possible moves
+                self.possible_moves.add((x, y))
+                shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
+                self.possible_move_ids.add(shape_id)
+
+                # handles when enemy piece has been reached
+                if Piece.board[x][y] is not None:
+                    break
+
+            # handles moves along the x axis
+            while isinstance(move[0], str) and isinstance(move[1], int):
+                x += 1 if move[0] == 'i' else -1
+
+                # blocks moves if end of board or same color piece has been reached
+                if not (0 <= x <= 7) or Piece.board[x][y] is not None and Piece.board[x][y].color == self.color:
+                    break
+
+                # adds move to possible moves
+                self.possible_moves.add((x, y))
+                shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
+                self.possible_move_ids.add(shape_id)
+
+                # handles when enemy piece has been reached
+                if Piece.board[x][y] is not None:
+                    break
+
+            # handles moves along the y axis
+            while isinstance(move[0], int) and isinstance(move[1], str):
+                y += 1 if move[1] == 'i' else -1
+
+                # blocks moves if end of board or same color piece has been reached
+                if not (0 <= y <= 7) or Piece.board[x][y] is not None and Piece.board[x][y].color == self.color:
+                    break
+
+                # adds move to possible moves
+                self.possible_moves.add((x, y))
+                shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
+                self.possible_move_ids.add(shape_id)
+
+                # handles when enemy piece has been reached
+                if Piece.board[x][y] is not None:
+                    break
+
+            # handles when move is a fixed displacement
+            if isinstance(move[0], int) and isinstance(move[1], int):
+                x += move[0]
+                y += move[1]
+                self.possible_moves.add((x, y))
+                shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
+                self.possible_move_ids.add(shape_id)
+
     def move(self, position: tuple):
         """
         moves the piece to the new location and kills the piece in that new location if there is one
@@ -91,10 +177,44 @@ class Piece:
         :param position: the new position to move the piece to
         """
 
-    def kill(self):
+        # hides moves and kills piece in new spot if possible
+        self.toggle_show_moves()
+        if self.board[position[0]][position[1]] is not None:
+            Piece.CANVAS.delete(self.board[position[0]][position[1]].id)
+
+        # moves piece
+        self.board[self.coordinates[0]][self.coordinates[1]] = None
+        self.board[position[0]][position[1]] = self
+        Piece.CANVAS.move(self.id, (position[0] - self.coordinates[0]) * 100, (position[1] - self.coordinates[1]) * 100)
+        self.coordinates = position
+
+    @staticmethod
+    def click(event):
         """
-        removes the piece from the board when it is taken out
+        handles when the mouse is clicked on the canvas
+
+        :param event: the mouse click event
         """
+
+        # converts canvas coordinates to game board coordinates
+        x = event.x // 100
+        y = event.y // 100
+
+        # handles when move has been clicked
+        if Piece.clicked_piece is not None and (x, y) in Piece.clicked_piece.possible_moves:
+            Piece.clicked_piece.move((x, y))
+
+        # handles when piece is clicked
+        elif Piece.board[x][y] is not None:
+            Piece.board[x][y].toggle_show_moves()
+
+        # handles when empty spot is clicked
+        elif Piece.clicked_piece is not None:
+            Piece.clicked_piece.toggle_show_moves()
+
+    # binds click event to click function and sets clicked piece
+    CANVAS.bind('<Button-1>', click)
+    clicked_piece = None
 
     def __repr__(self):
         """
@@ -102,4 +222,4 @@ class Piece:
 
         :return: the name of the piece
         """
-        return self.color + self.name
+        return self.color + ' ' + self.name

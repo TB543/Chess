@@ -52,7 +52,7 @@ def create_knight(coordinates: tuple, color: str):
     :param color: the color of the piece, can be either 'black' or 'white'
     """
 
-    moves = {(1, 2), (-1, 2), (2, 1), (-2, 1), (-1, 2), (-1, -2), (-2, 1), (-2, -1)}
+    moves = {(1, 2), (1, -2), (-1, 2), (-1, -2), (2, 1), (2, -1), (-2, 1), (-2, -1)}
     Piece(coordinates, f'board/assets/{color}/knight.png', (20, 15), moves, None)
 
 
