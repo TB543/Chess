@@ -81,7 +81,7 @@ def create_king(coordinates: tuple, color: str):
     creates a king
 
     :param coordinates: the coordinates of the chess piece in the form (0-7, 0-7)
-    :param color: the color of the piece, can be either 'black' or 'white'
+    :param color: the color of the piece, can be either 'black' or 'white' todo finish king move set and add turns
     """
 
     Piece(coordinates, f'board/assets/{color}/king.png', (10, 10), None, None)

@@ -46,8 +46,8 @@ def pawn_can_move_two(pawn: Piece) -> bool:
     """
 
     y = -2 if pawn.color == 'white' else 2
-    two_spaces = Piece.board[pawn.coordinates[0]][pawn.coordinates[1] + y] is None
-    return pawn.has_not_moved and pawn_can_move_one(pawn) and two_spaces
+    test_one = pawn.has_not_moved and pawn_can_move_one(pawn)
+    return test_one and Piece.board[pawn.coordinates[0]][pawn.coordinates[1] + y] is None
 
 
 def pawn_can_attack_left(pawn: Piece) -> bool:
@@ -58,6 +58,11 @@ def pawn_can_attack_left(pawn: Piece) -> bool:
     :return: true if the pawn can attack, false if it cannot
     """
 
+    # handles when pawn is at end of board
+    if pawn.coordinates[0] == 0:
+        return False
+
+    # checks if pawn can attack if pawn is not at end of board
     y = -1 if pawn.color == 'white' else 1
     piece = Piece.board[pawn.coordinates[0] - 1][pawn.coordinates[1] + y] is not None
     return piece and Piece.board[pawn.coordinates[0] - 1][pawn.coordinates[1] + y].color != pawn.color
@@ -71,6 +76,11 @@ def pawn_can_attack_right(pawn: Piece) -> bool:
     :return: true if the pawn can attack, false if it cannot
     """
 
+    # handles when pawn is at end of board
+    if pawn.coordinates[0] == 7:
+        return False
+
+    # checks if pawn can attack if pawn is not at end of board
     y = -1 if pawn.color == 'white' else 1
     piece = Piece.board[pawn.coordinates[0] + 1][pawn.coordinates[1] + y] is not None
     return piece and Piece.board[pawn.coordinates[0] + 1][pawn.coordinates[1] + y].color != pawn.color
@@ -108,7 +118,7 @@ def pawn_can_attack_left_upgrade(pawn: Piece) -> bool:
     :return: true if the pawn can attack and upgrade false if it cannot
     """
 
-    border = 1 if pawn.color == 'white' else 7
+    border = 1 if pawn.color == 'white' else 6
     return pawn_can_attack_left(pawn) and pawn.coordinates[1] == border
 
 
@@ -120,7 +130,7 @@ def pawn_can_attack_right_upgrade(pawn: Piece) -> bool:
     :return: true if the pawn can attack and upgrade false if it cannot
     """
 
-    border = 1 if pawn.color == 'white' else 7
+    border = 1 if pawn.color == 'white' else 6
     return pawn_can_attack_right(pawn) and pawn.coordinates[1] == border
 
 
