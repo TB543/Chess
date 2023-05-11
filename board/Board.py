@@ -17,7 +17,15 @@ def create_pawn(coordinates: tuple, color: str):
     :param color: the color of the piece, can be either 'black' or 'white'
     """
 
-    Piece(coordinates, f'board/assets/{color}/pawn.png', (25, 20), None, None)
+    multiplier = -1 if color == 'white' else 1
+    specials = {(0, 2 * multiplier, 0): [(pawn_can_move_two, pawn_move_two)],
+                (-1, 1 * multiplier, 1): [(pawn_can_attack_left_upgrade, pawn_attack_left_upgrade),
+                                          (pawn_can_attack_left, pawn_attack_left)],
+                (1, 1 * multiplier, 2): [(pawn_can_attack_right_upgrade, pawn_attack_right_upgrade),
+                                         (pawn_can_attack_right, pawn_attack_right)],
+                (0, 1 * multiplier, 3): [(pawn_can_upgrade, pawn_upgrade),
+                                         (pawn_can_move_one, pawn_move_one)]}
+    Piece(coordinates, f'board/assets/{color}/pawn.png', (25, 20), None, specials)
 
 
 def create_bishop(coordinates: tuple, color: str):

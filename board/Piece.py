@@ -9,15 +9,16 @@ class Piece:
 
     instances of the class contains the following attributes
         1) coordinates - the location of the piece on the board
-        2) image - the image for the piece
-        3) moves - the possible moves for the piece
-        4) specials - the special moves for the price
-        5) has_not_moved - determines if the piece has moved or not yet
-        6) color - the color of the piece
-        7) name - the name of the piece
-        8) image_id - the id of the image for the piece
-        9) possible_move_ids - a list of canvas objects representing the possible moves for the piece
-        10) possible_moves - a list of possible moves for the current position of the piece
+        2) moves - the possible moves for the piece
+        3) specials - the special moves for the price
+        4) has_not_moved - determines if the piece has moved or not yet
+        5) color - the color of the piece
+        6) name - the name of the piece
+        7) image_id - the id of the image for the piece
+        8) possible_move_ids - a list of canvas objects representing the possible moves for the piece
+        9) possible_moves - a list of possible moves for the current position of the piece
+        10) possible_specials - a dict of possible special moves for the current position of the piece as the key as
+            well as the action function as the value
         11) id - the id for the image on the canvas
 
     class contains the following functions:
@@ -29,10 +30,10 @@ class Piece:
     """
 
     # creates the canvas and the board matrix
-    CANVAS = Canvas(width=800, height=800)
+    CANVAS = Canvas(width=900, height=800)
     CANVAS.pack()
     CANVAS.master.resizable(False, False)
-    board = [[None for _ in range(8)] for _ in range(8)]
+    board = [[None for _ in range(8)] for _ in range(8)]  # note board is rotated 90 degrees for easier indexing
 
     # places the board spaces on the canvas
     for y in range(8):
@@ -54,24 +55,26 @@ class Piece:
             the piece can be moved infinitely in the +y direction, ('i', 0) means the piece can be moved infinitely in
             the +x direction and ('i', 'i') means the piece can move infinitely in the positive diagonal direction use
             '-i' to indicate the piece can move infinitely in the negative direction
-        :param specials: a dict containing special moves for the piece where the key is the move (see param moves for
-            more info) and the value is a tuple of functions, where the function at index 0 is the pre-test function to
-            determine if the move can be made (returns true or false) and the function at index 1 is the action
-            function, the function that will be called when the move is made. both functions take 1 parameter, the piece
-            that will move
+        :param specials: a dict containing special moves for the piece where the key is the move and the id (see param
+            moves for more info and the value is a list of tuples of functions, where the function at index 0 is the
+            pre-test function to determine if the move can be made (returns true or false) and the function at index 1
+            is the action function, the function that will be called when the move is made. both functions take 1
+            parameter, the piece that will move. the list of these functions should be ordered so that the lower index
+            special moves will have priority over the later index moves
         """
 
         # creates fields
         self.coordinates = coordinates
         self.image = PhotoImage(file=image).subsample(5, 5)
-        self.moves = moves
-        self.specials = specials
+        self.moves = moves if moves else set()
+        self.specials = specials if specials else {}
         self.has_not_moved = True
         image = image.split('/')
         self.color = image[-2]
         self.name = image[-1].replace('.png', '')
         self.possible_move_ids = set()
         self.possible_moves = set()
+        self.possible_specials = {}
 
         # places piece on board
         Piece.board[self.coordinates[0]][self.coordinates[1]] = self
@@ -100,6 +103,7 @@ class Piece:
             [Piece.CANVAS.delete(move) for move in self.possible_move_ids]
             self.possible_move_ids.clear()
             self.possible_moves.clear()
+            self.possible_specials.clear()
             Piece.clicked_piece = None
             return
 
@@ -173,6 +177,20 @@ class Piece:
                     shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
                     self.possible_move_ids.add(shape_id)
 
+        # draws special moves
+        for move in self.specials.keys():
+            x = self.coordinates[0]
+            y = self.coordinates[1]
+
+            # finds which special move takes priority
+            for i in range(len(self.specials[move])):
+                if self.specials[move][i][0](self):
+                    x += move[0]
+                    y += move[1]
+                    self.possible_specials[(x, y)] = self.specials[move][i][1]
+                    shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
+                    self.possible_move_ids.add(shape_id)
+
     def move(self, position: tuple):
         """
         moves the piece to the new location and kills the piece in that new location if there is one
@@ -191,6 +209,7 @@ class Piece:
         self.board[position[0]][position[1]] = self
         Piece.CANVAS.move(self.id, (position[0] - self.coordinates[0]) * 100, (position[1] - self.coordinates[1]) * 100)
         self.coordinates = position
+        self.has_not_moved = False
 
     @staticmethod
     def click(event):
@@ -204,9 +223,17 @@ class Piece:
         x = event.x // 100
         y = event.y // 100
 
+        # handles when click was outside of game
+        if x >= 8:
+            return
+
         # handles when move has been clicked
         if Piece.clicked_piece is not None and (x, y) in Piece.clicked_piece.possible_moves:
             Piece.clicked_piece.move((x, y))
+
+        # handles when special move has been clicked
+        elif Piece.clicked_piece is not None and (x, y) in Piece.clicked_piece.possible_specials.keys():
+            Piece.clicked_piece.possible_specials[(x, y)](Piece.clicked_piece)
 
         # handles when piece is clicked
         elif Piece.board[x][y] is not None:
