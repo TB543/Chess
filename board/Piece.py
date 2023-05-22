@@ -82,6 +82,58 @@ class Piece:
         y = (self.coordinates[1] * 100) + offset[1]
         self.id = Piece.CANVAS.create_image(x, y, image=self.image, anchor=NW)
 
+    def update_moves(self):
+        """
+        updates the pieces moves and special moves
+        """
+
+        # clears old moves
+        self.possible_moves.clear()
+        self.possible_specials.clear()
+
+        # gets every possible move
+        for move in self.moves:
+            x = self.coordinates[0]
+            y = self.coordinates[1]
+
+            # increments/decrements x and y to draw diagonal moves
+            while isinstance(move[0], str) or isinstance(move[1], str):
+                x += 1 if isinstance(move[0], str) and move[0] == 'i' else 0
+                x -= 1 if isinstance(move[0], str) and move[0] == '-i' else 0
+                y += 1 if isinstance(move[1], str) and move[1] == 'i' else 0
+                y -= 1 if isinstance(move[1], str) and move[1] == '-i' else 0
+
+                # blocks moves if end of board or same color piece has been reached
+                off_board = not (0 <= x <= 7 and 0 <= y <= 7)
+                if off_board or Piece.board[x][y] is not None and Piece.board[x][y].color == self.color:
+                    break
+
+                # handles when enemy piece has been reached
+                self.possible_moves.add((x, y))
+                if Piece.board[x][y] is not None:
+                    break
+
+            # handles when move is a fixed displacement
+            if isinstance(move[0], int) and isinstance(move[1], int):
+                x += move[0]
+                y += move[1]
+
+                # blocks moves if end of board or same color piece has been reached
+                if 0 <= x <= 7 and 0 <= y <= 7 and (Piece.board[x][y] is None or Piece.board[x][y].color != self.color):
+                    self.possible_moves.add((x, y))
+
+        # gets special moves
+        for move in self.specials.keys():
+            x = self.coordinates[0]
+            y = self.coordinates[1]
+
+            # finds which special move takes priority
+            for i in range(len(self.specials[move])):
+                if self.specials[move][i][0](self):
+                    x += move[0]
+                    y += move[1]
+                    self.possible_specials[(x, y)] = self.specials[move][i][1]
+
     def toggle_show_moves(self):
         """
         performs one of the following actions:
@@ -102,94 +154,24 @@ class Piece:
         elif Piece.clicked_piece == self:
             [Piece.CANVAS.delete(move) for move in self.possible_move_ids]
             self.possible_move_ids.clear()
-            self.possible_moves.clear()
-            self.possible_specials.clear()
             Piece.clicked_piece = None
             return
 
         # draws every possible move
         Piece.clicked_piece = self
-        for move in self.moves:
-            x = self.coordinates[0]
-            y = self.coordinates[1]
+        self.update_moves()
+        for move in self.possible_moves:
+            x = move[0] * 100
+            y = move[1] * 100
+            shape_id = Piece.CANVAS.create_oval(x, y, x + 100, y + 100, fill='blue')
+            self.possible_move_ids.add(shape_id)
 
-            # increments/decrements x and y to draw diagonal moves
-            while isinstance(move[0], str) and isinstance(move[1], str):
-                x += 1 if move[0] == 'i' else -1
-                y += 1 if move[1] == 'i' else -1
-
-                # blocks moves if end of board or same color piece has been reached
-                off_board = not (0 <= x <= 7 and 0 <= y <= 7)
-                if off_board or Piece.board[x][y] is not None and Piece.board[x][y].color == self.color:
-                    break
-
-                # adds move to possible moves
-                self.possible_moves.add((x, y))
-                shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
-                self.possible_move_ids.add(shape_id)
-
-                # handles when enemy piece has been reached
-                if Piece.board[x][y] is not None:
-                    break
-
-            # handles moves along the x axis
-            while isinstance(move[0], str) and isinstance(move[1], int):
-                x += 1 if move[0] == 'i' else -1
-
-                # blocks moves if end of board or same color piece has been reached
-                if not (0 <= x <= 7) or Piece.board[x][y] is not None and Piece.board[x][y].color == self.color:
-                    break
-
-                # adds move to possible moves
-                self.possible_moves.add((x, y))
-                shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
-                self.possible_move_ids.add(shape_id)
-
-                # handles when enemy piece has been reached
-                if Piece.board[x][y] is not None:
-                    break
-
-            # handles moves along the y axis
-            while isinstance(move[0], int) and isinstance(move[1], str):
-                y += 1 if move[1] == 'i' else -1
-
-                # blocks moves if end of board or same color piece has been reached
-                if not (0 <= y <= 7) or Piece.board[x][y] is not None and Piece.board[x][y].color == self.color:
-                    break
-
-                # adds move to possible moves
-                self.possible_moves.add((x, y))
-                shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
-                self.possible_move_ids.add(shape_id)
-
-                # handles when enemy piece has been reached
-                if Piece.board[x][y] is not None:
-                    break
-
-            # handles when move is a fixed displacement
-            if isinstance(move[0], int) and isinstance(move[1], int):
-                x += move[0]
-                y += move[1]
-
-                # blocks moves if end of board or same color piece has been reached
-                if 0 <= x <= 7 and 0 <= y <= 7 and (Piece.board[x][y] is None or Piece.board[x][y].color != self.color):
-                    self.possible_moves.add((x, y))
-                    shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
-                    self.possible_move_ids.add(shape_id)
-
-        # draws special moves
-        for move in self.specials.keys():
-            x = self.coordinates[0]
-            y = self.coordinates[1]
-
-            # finds which special move takes priority
-            for i in range(len(self.specials[move])):
-                if self.specials[move][i][0](self):
-                    x += move[0]
-                    y += move[1]
-                    self.possible_specials[(x, y)] = self.specials[move][i][1]
-                    shape_id = Piece.CANVAS.create_oval(x * 100, y * 100, (x * 100) + 100, (y * 100) + 100, fill='blue')
-                    self.possible_move_ids.add(shape_id)
+        # draws every possible special move
+        for move in self.possible_specials.keys():
+            x = move[0] * 100
+            y = move[1] * 100
+            shape_id = Piece.CANVAS.create_oval(x, y, x + 100, y + 100, fill='blue')
+            self.possible_move_ids.add(shape_id)
 
     def move(self, position: tuple):
         """

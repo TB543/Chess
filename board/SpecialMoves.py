@@ -23,15 +23,83 @@ a few functions for special moves that the following pieces can have:
     2) King
 
         --> pre-test to see if king can move to available spots without being put in check/checkmate
-        --> pre-test to see if king must be moved (when in check)
-        --> pre-test to see if king is in checkmate and game has been lost
         --> pre-test to see if king can be castled
 
         --> action function to move king to available spots without being put in check/checkmate
-        --> action function for when king must be moved (in check)
-        --> action function when game has been lost (checkmate)
         --> action function to castle the king
 """
+
+
+#  =============================================== PAWN HELPER-FUNCTIONS ===============================================
+
+
+def choose_upgrade(pawn: Piece):
+    """
+    lets the user choose an upgrade for their pawn
+
+    :param pawn: the pawn to upgrade
+    """
+
+    # loads images
+    pawn.queen = PhotoImage(file=f'board/assets/{pawn.color}/queen.png').subsample(5, 5)
+    pawn.knight = PhotoImage(file=f'board/assets/{pawn.color}/knight.png').subsample(5, 5)
+    pawn.rook = PhotoImage(file=f'board/assets/{pawn.color}/rook.png').subsample(5, 5)
+    pawn.bishop = PhotoImage(file=f'board/assets/{pawn.color}/bishop.png').subsample(5, 5)
+
+    # places images
+    squares = [Piece.CANVAS.create_rectangle(800, (y * 100) + 200, 900, (y * 100) + 300, fill='gray') for y in range(4)]
+    queen_id = Piece.CANVAS.create_image(810, 215, image=pawn.queen, anchor=NW)
+    knight_id = Piece.CANVAS.create_image(820, 315, image=pawn.knight, anchor=NW)
+    rook_id = Piece.CANVAS.create_image(820, 415, image=pawn.rook, anchor=NW)
+    bishop_id = Piece.CANVAS.create_image(815, 510, image=pawn.bishop, anchor=NW)
+
+    # changes click function
+    def click(event):
+        """
+        waits for user to click on choice
+
+        :param event: the click event
+        """
+
+        # scales coordinates for easy indexing
+        x = event.x // 100
+        y = event.y // 100
+
+        # makes sure a choice was selected
+        if x == 8 and 2 <= y <= 5:
+            Piece.CANVAS.delete(pawn.id)
+            piece = None
+
+            # handles when queen is selected
+            if y == 2:
+                moves = {(0, 'i'), (0, '-i'), ('i', 0), ('-i', 0), ('i', 'i'), ('i', '-i'), ('-i', 'i'), ('-i', '-i')}
+                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/queen.png', (10, 15), moves, None)
+
+            # handles when knight is selected
+            elif y == 3:
+                moves = {(1, 2), (1, -2), (-1, 2), (-1, -2), (2, 1), (2, -1), (-2, 1), (-2, -1)}
+                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/knight.png', (20, 15), moves, None)
+
+            # handles when rook is selected
+            elif y == 4:
+                moves = {(0, 'i'), (0, '-i'), ('i', 0), ('-i', 0)}
+                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/rook.png', (20, 15), moves, None)
+
+            # handles when bishop is selected
+            elif y == 5:
+                moves = {('i', 'i'), ('i', '-i'), ('-i', 'i'), ('-i', '-i')}
+                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/bishop.png', (15, 10), moves, None)
+
+            # places new piece, deletes choice images and continues game
+            Piece.board[pawn.coordinates[0]][pawn.coordinates[1]] = piece
+            [Piece.CANVAS.delete(square) for square in squares]
+            Piece.CANVAS.delete(queen_id)
+            Piece.CANVAS.delete(knight_id)
+            Piece.CANVAS.delete(rook_id)
+            Piece.CANVAS.delete(bishop_id)
+            Piece.CANVAS.bind('<Button-1>', Piece.click)
+
+    Piece.CANVAS.bind('<Button-1>', click)
 
 
 #  ================================================== PAWN PRE-TESTS ===================================================
@@ -106,7 +174,7 @@ def pawn_can_upgrade(pawn: Piece) -> bool:
     :return: true if the next move will cause the pawn to reach the end of the board false if it will not
     """
 
-    border = 1 if pawn.color == 'white' else 7
+    border = 1 if pawn.color == 'white' else 6
     return pawn_can_move_one(pawn) and pawn.coordinates[1] == border
 
 
@@ -181,75 +249,6 @@ def pawn_move_one(pawn: Piece):
     pawn.move((pawn.coordinates[0], pawn.coordinates[1] + y))
 
 
-def choose_upgrade(pawn: Piece):
-    """
-    lets the user choose an upgrade for their pawn
-
-    :param pawn: the pawn to upgrade
-    """
-
-    # loads images
-    pawn.queen = PhotoImage(file=f'board/assets/{pawn.color}/queen.png').subsample(5, 5)
-    pawn.knight = PhotoImage(file=f'board/assets/{pawn.color}/knight.png').subsample(5, 5)
-    pawn.rook = PhotoImage(file=f'board/assets/{pawn.color}/rook.png').subsample(5, 5)
-    pawn.bishop = PhotoImage(file=f'board/assets/{pawn.color}/bishop.png').subsample(5, 5)
-
-    # places images
-    squares = [Piece.CANVAS.create_rectangle(800, (y * 100) + 200, 900, (y * 100) + 300, fill='gray') for y in range(4)]
-    queen_id = Piece.CANVAS.create_image(810, 215, image=pawn.queen, anchor=NW)
-    knight_id = Piece.CANVAS.create_image(820, 315, image=pawn.knight, anchor=NW)
-    rook_id = Piece.CANVAS.create_image(820, 415, image=pawn.rook, anchor=NW)
-    bishop_id = Piece.CANVAS.create_image(815, 510, image=pawn.bishop, anchor=NW)
-
-    # changes click function
-    def click(event):
-        """
-        waits for user to click on choice
-
-        :param event: the click event
-        """
-
-        # scales coordinates for easy indexing
-        x = event.x // 100
-        y = event.y // 100
-
-        # makes sure a choice was selected
-        if x == 8 and 2 <= y <= 5:
-            Piece.CANVAS.delete(pawn.id)
-            piece = None
-
-            # handles when queen is selected
-            if y == 2:
-                moves = {(0, 'i'), (0, '-i'), ('i', 0), ('-i', 0), ('i', 'i'), ('i', '-i'), ('-i', 'i'), ('-i', '-i')}
-                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/queen.png', (10, 15), moves, None)
-
-            # handles when knight is selected
-            elif y == 3:
-                moves = {(1, 2), (1, -2), (-1, 2), (-1, -2), (2, 1), (2, -1), (-2, 1), (-2, -1)}
-                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/knight.png', (20, 15), moves, None)
-
-            # handles when rook is selected
-            elif y == 4:
-                moves = {(0, 'i'), (0, '-i'), ('i', 0), ('-i', 0)}
-                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/rook.png', (20, 15), moves, None)
-
-            # handles when bishop is selected
-            elif y == 5:
-                moves = {('i', 'i'), ('i', '-i'), ('-i', 'i'), ('-i', '-i')}
-                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/bishop.png', (15, 10), moves, None)
-
-            # places new piece, deletes choice images and continues game
-            Piece.board[pawn.coordinates[0]][pawn.coordinates[1]] = piece
-            [Piece.CANVAS.delete(square) for square in squares]
-            Piece.CANVAS.delete(queen_id)
-            Piece.CANVAS.delete(knight_id)
-            Piece.CANVAS.delete(rook_id)
-            Piece.CANVAS.delete(bishop_id)
-            Piece.CANVAS.bind('<Button-1>', Piece.click)
-
-    Piece.CANVAS.bind('<Button-1>', click)
-
-
 def pawn_upgrade(pawn: Piece):
     """
     moves the pawn forward one space and upgrades the pawn
@@ -281,3 +280,152 @@ def pawn_attack_right_upgrade(pawn: Piece):
 
     pawn_attack_right(pawn)
     choose_upgrade(pawn)
+
+
+#  =============================================== KING HELPER-FUNCTIONS ===============================================
+
+
+def not_checked(position: tuple, color: str):
+    """
+    checks if a given position on the board is "blocked" by another piece and would cause the king to be in check
+
+    :param position: the board position to check
+    :param color: the color of the king that will move, for example if king is white then function will see if black
+        moves will cause a check
+    :return:
+    """
+
+    # temporarily removes the piece at the given position
+    old_piece = Piece.board[position[0]][position[1]]
+    Piece.board[position[0]][position[1]] = None
+    moves = set()
+
+    # gets every possible move from the other colors pieces
+    for column in Piece.board:
+        for piece in column:
+            base_condition = piece is not None and piece.color != color
+
+            # handles pawns moves where attack isn't possible
+            if base_condition and piece.name == 'pawn':
+                piece.update_moves()
+                pawn_moves = [move if move[0] != piece.coordinates[0] else 0 for move in piece.possible_specials.keys()]
+                pawn_moves = set(pawn_moves)
+                pawn_moves.remove(0) if 0 in pawn_moves else None
+                moves = moves.union(pawn_moves)
+
+            # handles when the piece is a king
+            elif base_condition and piece.name == 'king':
+                king_moves = list(piece.specials.keys())
+                king_moves = [(piece.coordinates[0] + move[0], piece.coordinates[1] + move[1]) for move in king_moves]
+                moves = moves.union(king_moves)
+
+            # makes sure piece is enemy color
+            elif base_condition:
+                piece.update_moves()
+                moves = moves.union(piece.possible_moves).union(set(piece.possible_specials.keys()))
+
+    # replaces piece at position and returns result
+    Piece.board[position[0]][position[1]] = old_piece
+    return position not in moves
+
+
+#  ================================================== KING PRE-TESTS ===================================================
+
+
+def generate_king_can_move(move: tuple):
+    """
+    a wrapper function that generates a check move function for the king and a given move
+
+    :param move: the move that the king can make in the form (displacement x, displacement y)
+    :return: a wrapped function to check if the king can make the move
+    """
+
+    def wrapped_function(king: Piece) -> bool:
+        """
+        checks if the king can move in a given direction without putting it in check
+
+        :param king: the king to check
+        :return: true if the king can move, false if it cannot
+        """
+
+        x = king.coordinates[0] + move[0]
+        y = king.coordinates[1] + move[1]
+        not_blocked = 0 <= y <= 7 and not (Piece.board[x][y] is not None and Piece.board[x][y].color == king.color)
+        return not_blocked and not_checked((x, y), king.color)
+
+    return wrapped_function
+
+
+def king_can_castle_left(king: Piece) -> bool:
+    """
+    checks if the king can castle with the rook on the left
+
+    :param king: the king to check if it can castle
+    :return: true if the king can castle false if it cannot
+    """
+
+    not_moved = king.has_not_moved and Piece.board[0][7] is not None and Piece.board[0][7].has_not_moved
+    no_pieces_between = Piece.board[1][7] is None and Piece.board[2][7] is None and Piece.board[3][7] is None
+    not_in_check = not_checked(king.coordinates, king.color)
+    no_checks = not_checked((2, 7), king.color) and not_checked((3, 7), king.color)
+    return not_moved and no_pieces_between and not_in_check and no_checks
+
+
+def king_can_castle_right(king: Piece) -> bool:
+    """
+    checks if the king can castle with the rook on the right
+
+    :param king: the king to check if it can castle
+    :return: true if the king can castle false if it cannot
+    """
+
+    not_moved = king.has_not_moved and Piece.board[7][7] is not None and Piece.board[7][7].has_not_moved
+    no_pieces_between = Piece.board[5][7] is None and Piece.board[6][7] is None
+    not_in_check = not_checked(king.coordinates, king.color)
+    no_checks = not_checked((5, 7), king.color) and not_checked((6, 7), king.color)
+    return not_moved and no_pieces_between and not_in_check and no_checks
+
+
+#  =============================================== KING ACTION FUNCTIONS ===============================================
+
+
+def generate_king_move(move: tuple):
+    """
+    a wrapper function that generates a move function for the king and a given move
+
+    :param move: the move that the king can make in the form (displacement x, displacement y)
+    :return: a wrapped function to check if the king can make the move
+    """
+
+    def wrapped_function(king: Piece):
+        """
+        moves the king
+
+        :param king: the king to move
+        """
+
+        king.move((king.coordinates[0] + move[0], king.coordinates[1] + move[1]))
+
+    return wrapped_function
+
+
+def king_castle_left(king: Piece):
+    """
+    castles the king with the rook to the left
+
+    :param king: the king to castle
+    """
+
+    king.move((2, 7))
+    Piece.board[0][7].move((3, 7))
+
+
+def king_castle_right(king: Piece):
+    """
+    castles the king with the rook to the right
+
+    :param king: the king to castle
+    """
+
+    king.move((6, 7))
+    Piece.board[7][7].move((5, 7))

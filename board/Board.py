@@ -81,10 +81,20 @@ def create_king(coordinates: tuple, color: str):
     creates a king
 
     :param coordinates: the coordinates of the chess piece in the form (0-7, 0-7)
-    :param color: the color of the piece, can be either 'black' or 'white' todo finish king move set and add turns
+    :param color: the color of the piece, can be either 'black' or 'white'
     """
 
-    Piece(coordinates, f'board/assets/{color}/king.png', (10, 10), None, None)
+    specials = {(0, 1): [(generate_king_can_move((0, 1)), generate_king_move((0, 1)))],
+                (1, 1): [(generate_king_can_move((1, 1)), generate_king_move((1, 1)))],
+                (1, 0): [(generate_king_can_move((1, 0)), generate_king_move((1, 0)))],
+                (1, -1): [(generate_king_can_move((1, -1)), generate_king_move((1, -1)))],
+                (0, -1): [(generate_king_can_move((0, -1)), generate_king_move((0, -1)))],
+                (-1, -1): [(generate_king_can_move((-1, -1)), generate_king_move((-1, -1)))],
+                (-1, 0): [(generate_king_can_move((-1, 0)), generate_king_move((-1, 0)))],
+                (-1, 1): [(generate_king_can_move((-1, 1)), generate_king_move((-1, 1)))],
+                (2, 0): [(king_can_castle_right, king_castle_right)],
+                (-2, 0): [(king_can_castle_left, king_castle_left)]}
+    Piece(coordinates, f'board/assets/{color}/king.png', (10, 10), None, specials)
 
 
 def initialize_board():
