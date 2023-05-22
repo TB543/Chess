@@ -303,8 +303,9 @@ def generate_king_can_move(move: tuple):
 
         x = king.coordinates[0] + move[0]
         y = king.coordinates[1] + move[1]
-        not_blocked = 0 <= y <= 7 and not (Piece.board[x][y] is not None and Piece.board[x][y].color == king.color)
-        return not_blocked and Piece.not_blocked((x, y), king.color)
+        on_board = 0 <= y <= 7 and 0 <= x <= 7
+        not_blocked = on_board and not (Piece.board[x][y] is not None and Piece.board[x][y].color == king.color)
+        return not_blocked and (not Piece.attacked((x, y), king.color))
 
     return wrapped_function
 
@@ -320,8 +321,8 @@ def king_can_castle_left(king: Piece) -> bool:
     y = 7 if king.color == 'white' else 0
     not_moved = king.has_not_moved and Piece.board[0][y] is not None and Piece.board[0][y].has_not_moved
     no_pieces_between = Piece.board[1][y] is None and Piece.board[2][y] is None and Piece.board[3][y] is None
-    not_in_check = Piece.not_blocked(king.coordinates, king.color)
-    no_checks = Piece.not_blocked((2, y), king.color) and Piece.not_blocked((3, y), king.color)
+    not_in_check = not Piece.attacked(king.coordinates, king.color)
+    no_checks = (not Piece.attacked((2, y), king.color)) and (not Piece.attacked((3, y), king.color))
     return not_moved and no_pieces_between and not_in_check and no_checks
 
 
@@ -336,8 +337,8 @@ def king_can_castle_right(king: Piece) -> bool:
     y = 7 if king.color == 'white' else 0
     not_moved = king.has_not_moved and Piece.board[7][y] is not None and Piece.board[7][y].has_not_moved
     no_pieces_between = Piece.board[5][y] is None and Piece.board[6][y] is None
-    not_in_check = Piece.not_blocked(king.coordinates, king.color)
-    no_checks = Piece.not_blocked((5, y), king.color) and Piece.not_blocked((6, y), king.color)
+    not_in_check = not Piece.attacked(king.coordinates, king.color)
+    no_checks = (not Piece.attacked((5, y), king.color)) and (not Piece.attacked((6, y), king.color))
     return not_moved and no_pieces_between and not_in_check and no_checks
 
 
@@ -373,6 +374,7 @@ def king_castle_left(king: Piece):
 
     y = 7 if king.color == 'white' else 0
     king.move((2, y))
+    Piece.board[0][y].toggle_show_moves()
     Piece.board[0][y].move((3, y))
 
 
@@ -385,4 +387,5 @@ def king_castle_right(king: Piece):
 
     y = 7 if king.color == 'white' else 0
     king.move((6, y))
+    Piece.board[7][y].toggle_show_moves()
     Piece.board[7][y].move((5, y))

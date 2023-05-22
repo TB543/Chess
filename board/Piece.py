@@ -246,7 +246,7 @@ class Piece:
     clicked_piece = None
 
     @staticmethod
-    def not_blocked(position: tuple, color: str):
+    def attacked(position: tuple, color: str):
         """
         checks if a given position on the board is "blocked" by another piece and would cause the king to be in check
 
@@ -286,7 +286,7 @@ class Piece:
 
         # replaces piece at position and returns result
         Piece.board[position[0]][position[1]] = old_piece
-        return position not in moves
+        return position in moves
 
     @staticmethod
     def update_board():
@@ -305,6 +305,11 @@ class Piece:
                 piece.update_moves() if piece is not None else None
         Piece.WHITE_KING.update_moves()
         Piece.BLACK_KING.update_moves()
+
+        # checks if the king is in check
+        king = Piece.WHITE_KING if Piece.turn == 'white' else Piece.BLACK_KING
+        if Piece.attacked(king.coordinates, king.color):
+            raise NotImplementedError()
 
     def __repr__(self):
         """
