@@ -9,6 +9,9 @@ a few functions for board management:
 """
 
 
+# ==================================================== CREATE PIECE ====================================================
+
+
 def create_pawn(coordinates: tuple, color: str):
     """
     creates a pawn
@@ -97,6 +100,9 @@ def create_king(coordinates: tuple, color: str):
     Piece(coordinates, f'board/assets/{color}/king.png', (10, 10), None, specials)
 
 
+# ================================================== INITIALIZE BOARD ==================================================
+
+
 def initialize_board():
     """
     places all the pieces on the board in the correct starting configuration
@@ -123,3 +129,6 @@ def initialize_board():
     create_bishop((5, 7), 'white')
     create_knight((6, 7), 'white')
     create_rook((7, 7), 'white')
+
+    # updates piece moves
+    Piece.update_board()

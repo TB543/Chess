@@ -6,6 +6,7 @@ class Piece:
     a class representing a chess piece that contains the following attributes:
         1) a canvas where the pieces will be drawn to
         2) a matrix representing the game board
+        3) both of the king pieces
 
     instances of the class contains the following attributes
         1) coordinates - the location of the piece on the board
@@ -23,10 +24,13 @@ class Piece:
 
     class contains the following functions:
         1) __init__ - creates the chess piece
-        2) toggle_show_moves - display or hides possible moves for the piece
-        3) move - moves the piece
-        4) click - handles when the mouse is clicked on the board
-        5) __repr__ - returns the name of the piece, useful when printing Piece.board
+        2) update_moves - updates the pieces moves
+        3) toggle_show_moves - display or hides possible moves for the piece
+        4) move - moves the piece
+        5) click - handles when the mouse is clicked on the board
+        6) not_blocked - checks if a location is blocked by another piece or not
+        7) update_board - checks for checks and mates
+        8) __repr__ - returns the name of the piece, useful when printing Piece.board
     """
 
     # creates the canvas
@@ -34,9 +38,11 @@ class Piece:
     CANVAS.pack()
     CANVAS.master.resizable(False, False)
 
-    # creates board matrix turn variable
+    # creates board matrix turn variable and king variables
     board = [[None for _ in range(8)] for _ in range(8)]  # note board is rotated 90 degrees for easier indexing
-    turn = 'white'
+    turn = 'black'  # should be opposite of starting color because update_board is called during initialization
+    WHITE_KING = None
+    BLACK_KING = None
 
     # places the board spaces on the canvas
     for y in range(8):
@@ -84,6 +90,12 @@ class Piece:
         x = (self.coordinates[0] * 100) + offset[0]
         y = (self.coordinates[1] * 100) + offset[1]
         self.id = Piece.CANVAS.create_image(x, y, image=self.image, anchor=NW)
+
+        # saves piece if it is a king
+        if self.name == 'king' and self.color == 'white':
+            Piece.WHITE_KING = self
+        elif self.name == 'king' and self.color == 'black':
+            Piece.BLACK_KING = self
 
     def update_moves(self):
         """
@@ -162,7 +174,6 @@ class Piece:
 
         # draws every possible move
         Piece.clicked_piece = self
-        self.update_moves()
         for move in self.possible_moves:
             x = move[0] * 100
             y = move[1] * 100
@@ -215,12 +226,12 @@ class Piece:
         # handles when move has been clicked
         elif Piece.clicked_piece is not None and (x, y) in Piece.clicked_piece.possible_moves:
             Piece.clicked_piece.move((x, y))
-            Piece.turn = 'black' if Piece.turn == 'white' else 'white'
+            Piece.update_board()
 
         # handles when special move has been clicked
         elif Piece.clicked_piece is not None and (x, y) in Piece.clicked_piece.possible_specials.keys():
             Piece.clicked_piece.possible_specials[(x, y)](Piece.clicked_piece)
-            Piece.turn = 'black' if Piece.turn == 'white' else 'white'
+            Piece.update_board()
 
         # handles when piece is clicked
         elif Piece.board[x][y] is not None and Piece.board[x][y].color == Piece.turn:
@@ -234,10 +245,71 @@ class Piece:
     CANVAS.bind('<Button-1>', click)
     clicked_piece = None
 
+    @staticmethod
+    def not_blocked(position: tuple, color: str):
+        """
+        checks if a given position on the board is "blocked" by another piece and would cause the king to be in check
+
+        :param position: the board position to check
+        :param color: the color of the king that will move, for example if king is white then function will see if black
+            moves will cause a check
+        :return:
+        """
+
+        # temporarily removes the piece at the given position
+        old_piece = Piece.board[position[0]][position[1]]
+        Piece.board[position[0]][position[1]] = None
+        moves = set()
+
+        # gets every possible move from the other colors pieces
+        for column in Piece.board:
+            for piece in column:
+
+                # gets information about the piece used in multiple edge cases
+                base_condition = piece is not None and piece.color != color
+                x, y = piece.coordinates if base_condition else (None, None)
+
+                # handles pawns moves where attack isn't possible
+                if base_condition and piece.name == 'pawn':
+                    delta_y = -1 if piece.color == 'white' else 1
+                    pawn_moves = {(x - 1, y + delta_y), (x + 1, y + delta_y)}
+                    moves = moves.union(pawn_moves)
+
+                # handles when the piece is a king
+                elif base_condition and piece.name == 'king':
+                    king_moves = [(x + move[0], y + move[1]) for move in piece.specials.keys()]
+                    moves = moves.union(king_moves)
+
+                # makes sure piece is enemy color
+                elif base_condition:
+                    moves = moves.union(piece.possible_moves).union(set(piece.possible_specials.keys()))
+
+        # replaces piece at position and returns result
+        Piece.board[position[0]][position[1]] = old_piece
+        return position not in moves
+
+    @staticmethod
+    def update_board():
+        """
+        updates the board by performing the following actions
+            1) updates which players move it is
+            2) updates possible piece moves
+            3) checks for checks
+            4) checks for check mate
+        """
+
+        # updates turn and piece moves
+        Piece.turn = 'black' if Piece.turn == 'white' else 'white'
+        for column in Piece.board:
+            for piece in column:
+                piece.update_moves() if piece is not None else None
+        Piece.WHITE_KING.update_moves()
+        Piece.BLACK_KING.update_moves()
+
     def __repr__(self):
         """
         returns the name of the piece as a string
 
         :return: the name of the piece
         """
-        return self.color + ' ' + self.name
+        return f'{self.name} {self.color} {self.coordinates}'

@@ -282,53 +282,6 @@ def pawn_attack_right_upgrade(pawn: Piece):
     choose_upgrade(pawn)
 
 
-#  =============================================== KING HELPER-FUNCTIONS ===============================================
-
-
-def not_checked(position: tuple, color: str):
-    """
-    checks if a given position on the board is "blocked" by another piece and would cause the king to be in check
-
-    :param position: the board position to check
-    :param color: the color of the king that will move, for example if king is white then function will see if black
-        moves will cause a check
-    :return:
-    """
-
-    # temporarily removes the piece at the given position
-    old_piece = Piece.board[position[0]][position[1]]
-    Piece.board[position[0]][position[1]] = None
-    moves = set()
-
-    # gets every possible move from the other colors pieces
-    for column in Piece.board:
-        for piece in column:
-            base_condition = piece is not None and piece.color != color
-
-            # handles pawns moves where attack isn't possible
-            if base_condition and piece.name == 'pawn':
-                piece.update_moves()
-                pawn_moves = [move if move[0] != piece.coordinates[0] else 0 for move in piece.possible_specials.keys()]
-                pawn_moves = set(pawn_moves)
-                pawn_moves.remove(0) if 0 in pawn_moves else None
-                moves = moves.union(pawn_moves)
-
-            # handles when the piece is a king
-            elif base_condition and piece.name == 'king':
-                king_moves = list(piece.specials.keys())
-                king_moves = [(piece.coordinates[0] + move[0], piece.coordinates[1] + move[1]) for move in king_moves]
-                moves = moves.union(king_moves)
-
-            # makes sure piece is enemy color
-            elif base_condition:
-                piece.update_moves()
-                moves = moves.union(piece.possible_moves).union(set(piece.possible_specials.keys()))
-
-    # replaces piece at position and returns result
-    Piece.board[position[0]][position[1]] = old_piece
-    return position not in moves
-
-
 #  ================================================== KING PRE-TESTS ===================================================
 
 
@@ -351,7 +304,7 @@ def generate_king_can_move(move: tuple):
         x = king.coordinates[0] + move[0]
         y = king.coordinates[1] + move[1]
         not_blocked = 0 <= y <= 7 and not (Piece.board[x][y] is not None and Piece.board[x][y].color == king.color)
-        return not_blocked and not_checked((x, y), king.color)
+        return not_blocked and Piece.not_blocked((x, y), king.color)
 
     return wrapped_function
 
@@ -364,10 +317,11 @@ def king_can_castle_left(king: Piece) -> bool:
     :return: true if the king can castle false if it cannot
     """
 
-    not_moved = king.has_not_moved and Piece.board[0][7] is not None and Piece.board[0][7].has_not_moved
-    no_pieces_between = Piece.board[1][7] is None and Piece.board[2][7] is None and Piece.board[3][7] is None
-    not_in_check = not_checked(king.coordinates, king.color)
-    no_checks = not_checked((2, 7), king.color) and not_checked((3, 7), king.color)
+    y = 7 if king.color == 'white' else 0
+    not_moved = king.has_not_moved and Piece.board[0][y] is not None and Piece.board[0][y].has_not_moved
+    no_pieces_between = Piece.board[1][y] is None and Piece.board[2][y] is None and Piece.board[3][y] is None
+    not_in_check = Piece.not_blocked(king.coordinates, king.color)
+    no_checks = Piece.not_blocked((2, y), king.color) and Piece.not_blocked((3, y), king.color)
     return not_moved and no_pieces_between and not_in_check and no_checks
 
 
@@ -379,10 +333,11 @@ def king_can_castle_right(king: Piece) -> bool:
     :return: true if the king can castle false if it cannot
     """
 
-    not_moved = king.has_not_moved and Piece.board[7][7] is not None and Piece.board[7][7].has_not_moved
-    no_pieces_between = Piece.board[5][7] is None and Piece.board[6][7] is None
-    not_in_check = not_checked(king.coordinates, king.color)
-    no_checks = not_checked((5, 7), king.color) and not_checked((6, 7), king.color)
+    y = 7 if king.color == 'white' else 0
+    not_moved = king.has_not_moved and Piece.board[7][y] is not None and Piece.board[7][y].has_not_moved
+    no_pieces_between = Piece.board[5][y] is None and Piece.board[6][y] is None
+    not_in_check = Piece.not_blocked(king.coordinates, king.color)
+    no_checks = Piece.not_blocked((5, y), king.color) and Piece.not_blocked((6, y), king.color)
     return not_moved and no_pieces_between and not_in_check and no_checks
 
 
@@ -416,8 +371,9 @@ def king_castle_left(king: Piece):
     :param king: the king to castle
     """
 
-    king.move((2, 7))
-    Piece.board[0][7].move((3, 7))
+    y = 7 if king.color == 'white' else 0
+    king.move((2, y))
+    Piece.board[0][y].move((3, y))
 
 
 def king_castle_right(king: Piece):
@@ -427,5 +383,6 @@ def king_castle_right(king: Piece):
     :param king: the king to castle
     """
 
-    king.move((6, 7))
-    Piece.board[7][7].move((5, 7))
+    y = 7 if king.color == 'white' else 0
+    king.move((6, y))
+    Piece.board[7][y].move((5, y))
