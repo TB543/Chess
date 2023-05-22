@@ -29,11 +29,14 @@ class Piece:
         5) __repr__ - returns the name of the piece, useful when printing Piece.board
     """
 
-    # creates the canvas and the board matrix
+    # creates the canvas
     CANVAS = Canvas(width=900, height=800)
     CANVAS.pack()
     CANVAS.master.resizable(False, False)
+
+    # creates board matrix turn variable
     board = [[None for _ in range(8)] for _ in range(8)]  # note board is rotated 90 degrees for easier indexing
+    turn = 'white'
 
     # places the board spaces on the canvas
     for y in range(8):
@@ -207,18 +210,20 @@ class Piece:
 
         # handles when click was outside of game
         if x >= 8:
-            return
+            Piece.clicked_piece.toggle_show_moves() if Piece.clicked_piece is not None else None
 
         # handles when move has been clicked
-        if Piece.clicked_piece is not None and (x, y) in Piece.clicked_piece.possible_moves:
+        elif Piece.clicked_piece is not None and (x, y) in Piece.clicked_piece.possible_moves:
             Piece.clicked_piece.move((x, y))
+            Piece.turn = 'black' if Piece.turn == 'white' else 'white'
 
         # handles when special move has been clicked
         elif Piece.clicked_piece is not None and (x, y) in Piece.clicked_piece.possible_specials.keys():
             Piece.clicked_piece.possible_specials[(x, y)](Piece.clicked_piece)
+            Piece.turn = 'black' if Piece.turn == 'white' else 'white'
 
         # handles when piece is clicked
-        elif Piece.board[x][y] is not None:
+        elif Piece.board[x][y] is not None and Piece.board[x][y].color == Piece.turn:
             Piece.board[x][y].toggle_show_moves()
 
         # handles when empty spot is clicked
