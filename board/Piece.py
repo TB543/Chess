@@ -28,9 +28,10 @@ class Piece:
         3) toggle_show_moves - display or hides possible moves for the piece
         4) move - moves the piece
         5) click - handles when the mouse is clicked on the board
-        6) not_blocked - checks if a location is blocked by another piece or not
+        6) attacked - checks if a location is blocked by another pieces moves or not
         7) update_board - checks for checks and mates
-        8) __repr__ - returns the name of the piece, useful when printing Piece.board
+        8) check - updates the pieces moves for when there is a check
+        9) __repr__ - returns the name of the piece, useful when printing Piece.board
     """
 
     # creates the canvas
@@ -187,25 +188,27 @@ class Piece:
             shape_id = Piece.CANVAS.create_oval(x, y, x + 100, y + 100, fill='blue')
             self.possible_move_ids.add(shape_id)
 
-    def move(self, position: tuple):
+    def move(self, position: tuple, temporary: bool = False):
         """
         moves the piece to the new location and kills the piece in that new location if there is one
         additionally if moves are displayed they will be hidden after the move
 
         :param position: the new position to move the piece to
+        :param temporary: determines if the move is temporary, used in getting moves during a check
         """
 
         # hides moves and kills piece in new spot if possible
-        self.toggle_show_moves()
-        if self.board[position[0]][position[1]] is not None:
+        self.toggle_show_moves() if not temporary else None
+        if (not temporary) and (self.board[position[0]][position[1]] is not None):
             Piece.CANVAS.delete(self.board[position[0]][position[1]].id)
 
         # moves piece
         self.board[self.coordinates[0]][self.coordinates[1]] = None
         self.board[position[0]][position[1]] = self
-        Piece.CANVAS.move(self.id, (position[0] - self.coordinates[0]) * 100, (position[1] - self.coordinates[1]) * 100)
+        x, y = (position[0] - self.coordinates[0]) * 100, (position[1] - self.coordinates[1]) * 100
+        Piece.CANVAS.move(self.id, x, y) if not temporary else None
         self.coordinates = position
-        self.has_not_moved = False
+        self.has_not_moved = False if not temporary else self.has_not_moved
 
     @staticmethod
     def click(event):
@@ -246,22 +249,18 @@ class Piece:
     clicked_piece = None
 
     @staticmethod
-    def attacked(position: tuple, color: str):
+    def attacked(position: tuple, color: str) -> list:
         """
         checks if a given position on the board is "blocked" by another piece and would cause the king to be in check
 
         :param position: the board position to check
         :param color: the color of the king that will move, for example if king is white then function will see if black
             moves will cause a check
-        :return:
+        :return: a list of pieces that are attacking this position
         """
 
-        # temporarily removes the piece at the given position
-        old_piece = Piece.board[position[0]][position[1]]
-        Piece.board[position[0]][position[1]] = None
-        moves = set()
-
         # gets every possible move from the other colors pieces
+        attacking_pieces = []
         for column in Piece.board:
             for piece in column:
 
@@ -269,24 +268,24 @@ class Piece:
                 base_condition = piece is not None and piece.color != color
                 x, y = piece.coordinates if base_condition else (None, None)
 
-                # handles pawns moves where attack isn't possible
+                # handles pawns moves where attack isn't currently possible
                 if base_condition and piece.name == 'pawn':
                     delta_y = -1 if piece.color == 'white' else 1
                     pawn_moves = {(x - 1, y + delta_y), (x + 1, y + delta_y)}
-                    moves = moves.union(pawn_moves)
+                    attacking_pieces.append(piece) if position in pawn_moves else None
 
                 # handles when the piece is a king
                 elif base_condition and piece.name == 'king':
                     king_moves = [(x + move[0], y + move[1]) for move in piece.specials.keys()]
-                    moves = moves.union(king_moves)
+                    attacking_pieces.append(piece) if position in king_moves else None
 
                 # makes sure piece is enemy color
                 elif base_condition:
-                    moves = moves.union(piece.possible_moves).union(set(piece.possible_specials.keys()))
+                    moves = piece.possible_moves.union(set(piece.possible_specials.keys()))
+                    attacking_pieces.append(piece) if position in moves else None
 
-        # replaces piece at position and returns result
-        Piece.board[position[0]][position[1]] = old_piece
-        return position in moves
+        # returns list of attacking pieces
+        return attacking_pieces
 
     @staticmethod
     def update_board():
@@ -295,7 +294,6 @@ class Piece:
             1) updates which players move it is
             2) updates possible piece moves
             3) checks for checks
-            4) checks for check mate
         """
 
         # updates turn and piece moves
@@ -309,12 +307,72 @@ class Piece:
         # checks if the king is in check
         king = Piece.WHITE_KING if Piece.turn == 'white' else Piece.BLACK_KING
         if Piece.attacked(king.coordinates, king.color):
-            raise NotImplementedError()
+            Piece.check(king)
+
+    @staticmethod
+    def check(king):
+        """
+        handles when there is a check on the board. only allows moves that would get king out of check
+
+        :param king: the king that is in check
+        """
+
+        # loops over every possible move for the king
+        board_copy = [row.copy() for row in Piece.board]
+        king_coordinates = king.coordinates
+        invalid_moves = []
+        for move in tuple(king.possible_specials.keys()):
+
+            # moves the king to the possible move and updates other pieces moves
+            king.move(move, True)
+            for column in Piece.board:
+                for piece in column:
+                    piece.update_moves() if piece is not None else None
+            king.update_moves()
+
+            # adds move to list of invalid moves if king would be in check
+            if Piece.attacked(king.coordinates, king.color):
+                invalid_moves.append(move)
+
+            # resets the board
+            king.move(king_coordinates, True)
+            Piece.board = [row.copy() for row in board_copy]
+
+        # resets board
+        king.move(king.coordinates, True)
+        for column in Piece.board:
+            for piece in column:
+                piece.update_moves() if piece is not None else None
+
+        # updates king moves
+        king.update_moves()
+        [king.possible_specials.pop(move) for move in invalid_moves]
+
+        # loops over every piece of the same color as the king
+        attacking_pieces = set([piece.coordinates for piece in Piece.attacked(king.coordinates, king.color)])
+        can_attack_attacking = False
+        for column in Piece.board:
+            for piece in column:
+                if (piece is not None) and (piece != king) and (piece.color == king.color):
+
+                    # updates pieces moves
+                    piece.possible_moves = piece.possible_moves.intersection(attacking_pieces)
+                    for move in tuple(piece.possible_specials.keys()):
+                        if move not in attacking_pieces:
+                            piece.possible_specials.pop(move)
+
+                    # checks if the piece can attack
+                    if len(piece.possible_moves) + len(piece.possible_specials) >= 1:
+                        can_attack_attacking = True
+
+        # checks if there is a checkmate
+        if len(king.possible_specials) == 0 and (len(attacking_pieces) > 1 or (not can_attack_attacking)):
+            raise NotImplementedError('checkmate')  # todo
 
     def __repr__(self):
         """
-        returns the name of the piece as a string
+        returns the name of the piece the color and the coordinates as a string
 
-        :return: the name of the piece
+        :return: the name of the piece the color and the coordinates
         """
         return f'{self.name} {self.color} {self.coordinates}'
