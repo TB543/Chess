@@ -28,7 +28,7 @@ def create_pawn(coordinates: tuple, color: str):
                                          (pawn_can_attack_right, pawn_attack_right)],
                 (0, 1 * multiplier, 3): [(pawn_can_upgrade, pawn_upgrade),
                                          (pawn_can_move_one, pawn_move_one)]}
-    Piece(coordinates, f'board/assets/{color}/pawn.png', (25, 20), None, specials)
+    Piece(coordinates, f'board/assets/{color}/pawn.png', (20, 15), None, specials)
 
 
 def create_bishop(coordinates: tuple, color: str):
@@ -40,7 +40,7 @@ def create_bishop(coordinates: tuple, color: str):
     """
 
     moves = {('i', 'i'), ('i', '-i'), ('-i', 'i'), ('-i', '-i')}
-    Piece(coordinates, f'board/assets/{color}/bishop.png', (15, 10), moves, None)
+    Piece(coordinates, f'board/assets/{color}/bishop.png', (20, 15), moves, None)
 
 
 def create_rook(coordinates: tuple, color: str):
@@ -76,7 +76,7 @@ def create_queen(coordinates: tuple, color: str):
     """
 
     moves = {(0, 'i'), (0, '-i'), ('i', 0), ('-i', 0), ('i', 'i'), ('i', '-i'), ('-i', 'i'), ('-i', '-i')}
-    Piece(coordinates, f'board/assets/{color}/queen.png', (10, 15), moves, None)
+    Piece(coordinates, f'board/assets/{color}/queen.png', (15, 15), moves, None)
 
 
 def create_king(coordinates: tuple, color: str):
@@ -97,7 +97,7 @@ def create_king(coordinates: tuple, color: str):
                 (-1, 1): [(generate_king_can_move((-1, 1)), generate_king_move((-1, 1)))],
                 (2, 0): [(king_can_castle_right, king_castle_right)],
                 (-2, 0): [(king_can_castle_left, king_castle_left)]}
-    Piece(coordinates, f'board/assets/{color}/king.png', (10, 10), None, specials)
+    Piece(coordinates, f'board/assets/{color}/king.png', (20, 15), None, specials)
 
 
 # ================================================== INITIALIZE BOARD ==================================================

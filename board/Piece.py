@@ -75,7 +75,7 @@ class Piece:
 
         # creates fields
         self.coordinates = coordinates
-        self.image = PhotoImage(file=image).subsample(5, 5)
+        self.image = PhotoImage(file=image).subsample(2, 2)
         self.moves = moves if moves else set()
         self.specials = specials if specials else {}
         self.has_not_moved = True
