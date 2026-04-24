@@ -1,5 +1,5 @@
 from Piece import Piece
-from tkinter import PhotoImage, NW
+from tkinter import PhotoImage
 
 
 """
@@ -41,17 +41,17 @@ def choose_upgrade(pawn: Piece):
     """
 
     # loads images
-    pawn.queen = PhotoImage(file=f'board/assets/{pawn.color}/queen.png').subsample(5, 5)
-    pawn.knight = PhotoImage(file=f'board/assets/{pawn.color}/knight.png').subsample(5, 5)
-    pawn.rook = PhotoImage(file=f'board/assets/{pawn.color}/rook.png').subsample(5, 5)
-    pawn.bishop = PhotoImage(file=f'board/assets/{pawn.color}/bishop.png').subsample(5, 5)
+    pawn.queen = PhotoImage(file=f'board/assets/{pawn.color}/queen.png').subsample(2, 2)
+    pawn.knight = PhotoImage(file=f'board/assets/{pawn.color}/knight.png').subsample(2, 2)
+    pawn.rook = PhotoImage(file=f'board/assets/{pawn.color}/rook.png').subsample(2, 2)
+    pawn.bishop = PhotoImage(file=f'board/assets/{pawn.color}/bishop.png').subsample(2, 2)
 
     # places images
-    squares = [Piece.CANVAS.create_rectangle(800, (y * 100) + 200, 900, (y * 100) + 300, fill='gray') for y in range(4)]
-    queen_id = Piece.CANVAS.create_image(810, 215, image=pawn.queen, anchor=NW)
-    knight_id = Piece.CANVAS.create_image(820, 315, image=pawn.knight, anchor=NW)
-    rook_id = Piece.CANVAS.create_image(820, 415, image=pawn.rook, anchor=NW)
-    bishop_id = Piece.CANVAS.create_image(815, 510, image=pawn.bishop, anchor=NW)
+    squares = [Piece.CANVAS.create_rectangle(600, (y * 75) + 150, 675, (y * 75) + 225, fill='gray') for y in range(4)]
+    queen_id = Piece.CANVAS.create_image(637, 187, image=pawn.queen, anchor="center")
+    knight_id = Piece.CANVAS.create_image(637, 262, image=pawn.knight, anchor="center")
+    rook_id = Piece.CANVAS.create_image(637, 337, image=pawn.rook, anchor="center")
+    bishop_id = Piece.CANVAS.create_image(637, 412, image=pawn.bishop, anchor="center")
 
     # changes click function
     def click(event):
@@ -62,8 +62,8 @@ def choose_upgrade(pawn: Piece):
         """
 
         # scales coordinates for easy indexing
-        x = event.x // 100
-        y = event.y // 100
+        x = event.x // 75
+        y = event.y // 75
 
         # makes sure a choice was selected
         if x == 8 and 2 <= y <= 5:
@@ -73,22 +73,22 @@ def choose_upgrade(pawn: Piece):
             # handles when queen is selected
             if y == 2:
                 moves = {(0, 'i'), (0, '-i'), ('i', 0), ('-i', 0), ('i', 'i'), ('i', '-i'), ('-i', 'i'), ('-i', '-i')}
-                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/queen.png', (10, 15), moves, None)
+                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/queen.png', moves, None)
 
             # handles when knight is selected
             elif y == 3:
                 moves = {(1, 2), (1, -2), (-1, 2), (-1, -2), (2, 1), (2, -1), (-2, 1), (-2, -1)}
-                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/knight.png', (20, 15), moves, None)
+                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/knight.png', moves, None)
 
             # handles when rook is selected
             elif y == 4:
                 moves = {(0, 'i'), (0, '-i'), ('i', 0), ('-i', 0)}
-                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/rook.png', (20, 15), moves, None)
+                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/rook.png', moves, None)
 
             # handles when bishop is selected
             elif y == 5:
                 moves = {('i', 'i'), ('i', '-i'), ('-i', 'i'), ('-i', '-i')}
-                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/bishop.png', (15, 10), moves, None)
+                piece = Piece(pawn.coordinates, f'board/assets/{pawn.color}/bishop.png', moves, None)
 
             # places new piece, deletes choice images and continues game
             Piece.board[pawn.coordinates[0]][pawn.coordinates[1]] = piece

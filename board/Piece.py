@@ -1,4 +1,4 @@
-from tkinter import Canvas, PhotoImage, NW
+from tkinter import Canvas, PhotoImage, Tk, Button
 
 
 class Piece:
@@ -35,9 +35,13 @@ class Piece:
     """
 
     # creates the canvas
-    CANVAS = Canvas(width=900, height=800)
-    CANVAS.pack()
-    CANVAS.master.resizable(False, False)
+    TK = Tk()
+    TK.geometry("1024x600+0+0")
+    TK.configure(cursor=None)
+    CANVAS = Canvas(TK, width=675, height=600)
+    CANVAS.place(relx=.5, rely=.5, anchor="center")
+    Button(TK, text="Exit", command=TK.destroy).place(relx=1, rely=0, relwidth=.1, relheight=.1, anchor="ne")
+    TK.resizable(False, False)
 
     # creates board matrix turn variable and king variables
     board = [[None for _ in range(8)] for _ in range(8)]  # note board is rotated 90 degrees for easier indexing
@@ -47,18 +51,17 @@ class Piece:
 
     # places the board spaces on the canvas
     for y in range(8):
-        y *= 100
+        y *= 75
         for x in range(8):
-            x *= 100
-            CANVAS.create_rectangle(x, y, x + 100, y + 100, fill=['#e3c16f', '#b88b4a'][((x + y) // 100) % 2])
+            x *= 75
+            CANVAS.create_rectangle(x, y, x + 75, y + 75, fill=['#e3c16f', '#b88b4a'][((x + y) // 75) % 2])
 
-    def __init__(self, coordinates: tuple, image: str, offset: tuple, moves: set, specials: dict):
+    def __init__(self, coordinates: tuple, image: str, moves: set, specials: dict):
         """
         creates the chess piece
 
         :param coordinates: the coordinates of the chess piece in the form (0-7, 0-7)
         :param image: the file path to the image, images will anchor to the top left (NW) corner when placed
-        :param offset: the number of pixels to offset the image for it to be centered on the board in the form (x, y)
         :param moves: a set of moves for the piece in the form (x, y) where x is the relative distance in the x
             direction and y is the relative distance in the y direction, use 'i' to indicate that the piece can be moved
             infinitely in that direction (until end of board or another piece is reached). for example (0, 'i') means
@@ -88,9 +91,9 @@ class Piece:
 
         # places piece on board
         Piece.board[self.coordinates[0]][self.coordinates[1]] = self
-        x = (self.coordinates[0] * 100) + offset[0]
-        y = (self.coordinates[1] * 100) + offset[1]
-        self.id = Piece.CANVAS.create_image(x, y, image=self.image, anchor=NW)
+        x = (self.coordinates[0] * 75) + (75 / 2)
+        y = (self.coordinates[1] * 75) + (75 / 2)
+        self.id = Piece.CANVAS.create_image(x, y, image=self.image, anchor="center")
 
         # saves piece if it is a king
         if self.name == 'king' and self.color == 'white':
@@ -176,16 +179,16 @@ class Piece:
         # draws every possible move
         Piece.clicked_piece = self
         for move in self.possible_moves:
-            x = move[0] * 100
-            y = move[1] * 100
-            shape_id = Piece.CANVAS.create_oval(x, y, x + 100, y + 100, fill='blue')
+            x = move[0] * 75
+            y = move[1] * 75
+            shape_id = Piece.CANVAS.create_oval(x, y, x + 75, y + 75, fill='blue')
             self.possible_move_ids.add(shape_id)
 
         # draws every possible special move
         for move in self.possible_specials.keys():
-            x = move[0] * 100
-            y = move[1] * 100
-            shape_id = Piece.CANVAS.create_oval(x, y, x + 100, y + 100, fill='blue')
+            x = move[0] * 75
+            y = move[1] * 75
+            shape_id = Piece.CANVAS.create_oval(x, y, x + 75, y + 75, fill='blue')
             self.possible_move_ids.add(shape_id)
 
     def move(self, position: tuple, temporary: bool = False):
@@ -205,7 +208,7 @@ class Piece:
         # moves piece
         self.board[self.coordinates[0]][self.coordinates[1]] = None
         self.board[position[0]][position[1]] = self
-        x, y = (position[0] - self.coordinates[0]) * 100, (position[1] - self.coordinates[1]) * 100
+        x, y = (position[0] - self.coordinates[0]) * 75, (position[1] - self.coordinates[1]) * 75
         Piece.CANVAS.move(self.id, x, y) if not temporary else None
         self.coordinates = position
         self.has_not_moved = False if not temporary else self.has_not_moved
@@ -219,8 +222,8 @@ class Piece:
         """
 
         # converts canvas coordinates to game board coordinates
-        x = event.x // 100
-        y = event.y // 100
+        x = event.x // 75
+        y = event.y // 75
 
         # handles when click was outside of game
         if x >= 8:
@@ -300,7 +303,10 @@ class Piece:
         Piece.turn = 'black' if Piece.turn == 'white' else 'white'
         for column in Piece.board:
             for piece in column:
-                piece.update_moves() if piece is not None else None
+                try:
+                    piece.update_moves() if piece is not None else None
+                except:
+                    continue
         Piece.WHITE_KING.update_moves()
         Piece.BLACK_KING.update_moves()
 
