@@ -16,4 +16,5 @@ from board import *
 
 
 initialize_board()
+Piece.TK.attributes("-fullscreen", True)
 Piece.TK.mainloop()
